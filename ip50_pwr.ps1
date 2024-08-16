@@ -6,7 +6,9 @@ param (
   [string]$pod,
   
   [ValidateSet("on", "On", "ON", "off", "Off", "OFF")]
-  [string]$cmd
+  [string]$cmd,
+
+  [bool]$delay = $false
 )
 
 ###############################################################################
@@ -19,10 +21,48 @@ $DEV_PORT = 30333
 $LINE_END = "`r`n"
 $POD_STR = "POD"
 $ALL_STR = "ALL"
+
 $jg_devices = @('R1A', 'R1B', 'R2A', 'R3A', 'R3B')
+
+$dev_ip_addresses = @{
+  'R1A' = '172.22.0.201'
+  'R1B' = '172.22.0.202'
+  'R2A' = '172.22.0.203'
+  'R3A' = '172.22.0.204'
+  'R3B' = '172.22.0.205'
+}
+
+$jg_delays = @{
+  'R1A' = 0
+  'R1B' = 2
+  'R2A' = 4
+  'R3A' = 6
+  'R3B' = 8 
+  # 'R1B' = 2
+  # 'R2A' = 4
+  # 'R3A' = 6
+  # 'R3B' = 8 
+}
 
 ###############################################################################
 # Helper Functions
+
+function GetDelaySeconds {
+  [CmdletBinding()]
+  param (
+      [ValidateSet('R1A', 'R1B', 'R2A', 'R3A', 'R3B')]
+      [string]$dev
+  )
+
+  if ($jg_delays.ContainsKey($dev)) {
+    $time_delay = $jg_delays[$dev]
+    Write-Host "delay for $dev is $time_delay"
+    return $jg_delays[$dev]
+  }
+  else {
+      Write-Error -Message "Invalid device. IP address not available" -Category InvalidArgument
+  }
+}
 
 function GetDevIpAddr {
   [CmdletBinding()]
@@ -31,18 +71,8 @@ function GetDevIpAddr {
       [string]$dev
   )
 
-  $dev_ip_addresses = @{
-    'R1A' = '172.22.0.201'
-    'R1B' = '172.22.0.202' 
-    'R2A' = '172.22.0.203' 
-    'R3A' = '172.22.0.204' 
-    'R3B' = '172.22.0.205' 
-  }
-
   if ($dev_ip_addresses.ContainsKey($dev)) {
-    $ip = $dev_ip_addresses[$dev]
-    # Write-Output "IP of $dev is $ip`r`n"
-    return $ip
+    return $dev_ip_addresses[$dev]
   }
   else {
       Write-Error -Message "Invalid device. IP address not available" -Category InvalidArgument
@@ -53,7 +83,6 @@ function SendCommand {
   param (
       [string]$ip_addr,
       [string]$port,
-      # [int32]$pod,
       [string]$cmd
   )
 
@@ -67,9 +96,6 @@ function SendCommand {
   # Send command
   $byteData = [Text.Encoding]::UTF8.GetBytes($cmd)
   $null = $udpClient.Send($byteData, $byteData.Length, $ip_addr, $port)
-
-  # $out_str = "Sent Command, $cmd, to $ip_addr"
-  # Write-Host $out_str
 
   # Close the UDP client
   $udpClient.Close()
@@ -89,7 +115,6 @@ function BuildCommand {
     $cmd_prefix = $POD_STR + $pod 
   }
   return ($cmd_prefix + $cmd + $LINE_END).ToUpper()
-  # return $command
 }
 
 ###############################################################################
@@ -108,6 +133,11 @@ if ($dev.ToUpper() -eq 'ALL') {
     $command = BuildCommand -pod $pod -cmd $cmd
     SendCommand -ip_addr $jg_ip -port $DEV_PORT -cmd $command
     Write-Output "Message sent to $jg ($jg_ip). Cmd: $command"
+
+    if ($delay) {
+      $delay_secs = GetDelaySeconds -dev $jg
+      Start-Sleep -Seconds $delay_secs
+    }
   }
 } else {
   # Get device IP address
