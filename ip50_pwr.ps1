@@ -22,6 +22,8 @@ $ALL_STR = "ALL"
 # $ON_STR = "ON"
 # $OFF_STR = "OFF"
 
+$jg_devices = @('R1A', 'R1B', 'R2A', 'R3A', 'R3B')
+
 ###############################################################################
 # Helper Functions
 
@@ -80,6 +82,22 @@ function SendCommand {
   $udpClient.Close()
 }
 
+function BuildCommand {
+
+
+
+  # Build command
+  $cmd_prefix = ""
+  if ($pod.ToUpper() -eq "ALL") {
+    $cmd_prefix = $ALL_STR
+  } else {
+    $cmd_prefix = $POD_STR + $pod
+  }
+  $command = $cmd_prefix + $cmd + $LINE_END
+  $command = $command.ToUpper()
+}
+
+
 ###############################################################################
 
 # Show input arguments
@@ -87,14 +105,31 @@ Write-Output "dev = $dev"
 Write-Output "pod = $pod"
 Write-Output "cmd = $cmd"
 
-# $log_str = ""
-# if ($dev.ToUpper() -eq 'ALL') {
-#   $log_str = "He selected all of them"
+$log_str = ""
+$command = ""
+if ($dev.ToUpper() -eq 'ALL') {
+  $log_str = "He selected all of them" 
 
-#   foreach () {
-# Gean start here ...
-#   }
-# } else {
+  foreach ($jg in $jg_devices) {
+
+    $jg_ip = GetDevIpAddr -dev $jg
+    Write-Output "all selected: ip lookup: $jg = $jg_ip"
+
+    # Build command
+    $cmd_prefix = ""
+    if ($pod.ToUpper() -eq "ALL") {
+      $cmd_prefix = $ALL_STR
+    } else {
+      $cmd_prefix = $POD_STR + $pod
+    }
+    $command = $cmd_prefix + $cmd + $LINE_END
+    $command = $command.ToUpper()
+
+    SendCommand -ip_addr $jg_ip -port $DEV_PORT -cmd $command
+    $log_str = "Message sent to $dev ($jg_ip). Cmd: $command"
+  }
+
+} else {
   $dev_ip = GetDevIpAddr -dev $dev
   Write-Output "lookup: $dev = $dev_ip"
 
@@ -107,11 +142,12 @@ Write-Output "cmd = $cmd"
   }
   $command = $cmd_prefix + $cmd + $LINE_END
   $command = $command.ToUpper()
-  # Write-Output "command = $command"
-  
+
   SendCommand -ip_addr $dev_ip -port $DEV_PORT -cmd $command
   $log_str = "Message sent to $dev ($dev_ip). Cmd: $command"
-# }
+}
+# Write-Output "command = $command"
+
 Write-Host $log_str
 
 
