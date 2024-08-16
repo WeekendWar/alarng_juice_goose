@@ -9,13 +9,13 @@ $form.Size = New-Object System.Drawing.Size(400, 450)
 
 # Create a button
 $button1 = New-Object System.Windows.Forms.Button
-$button1.Text = "Pod1 On"
+$button1.Text = "All On"
 $button1.Location = New-Object System.Drawing.Point(50, 40)
 $button1.Size = New-Object System.Drawing.Size(100, 30)
 
 # Create a button
 $button2 = New-Object System.Windows.Forms.Button
-$button2.Text = "Pod1 Off"
+$button2.Text = "All Off"
 $button2.Location = New-Object System.Drawing.Point(220, 40)
 $button2.Size = New-Object System.Drawing.Size(100, 30)
 
@@ -32,21 +32,23 @@ $outputBox.Text = "Command Logging:`r`n"
 $button1.Add_Click({
     $scriptPath = ".\ip50_pwr.ps1"
     # $param = $textbox.Text
-    $pod = 1
+    $dev = "ALL"
+    $pod = "ALL"
     $cmd = "on"
-    & $scriptPath -pod $pod -cmd $cmd    
+    & $scriptPath -dev $dev -pod $pod -cmd $cmd    
     # [System.Windows.Forms.MessageBox]::Show("POD1 On clicked!")
-    $outputBox.AppendText("POD 1 Power On`r`n")
+    $outputBox.AppendText("All Power On`r`n")
 })
 
 $button2.Add_Click({
     $scriptPath = ".\ip50_pwr.ps1"
     # $param = $textbox.Text
-    $pod = 1
+    $dev = "ALL"
+    $pod = "ALL"
     $cmd = "off"
-    & $scriptPath -pod $pod -cmd $cmd    
+    & $scriptPath -dev $dev -pod $pod -cmd $cmd    
     # [System.Windows.Forms.MessageBox]::Show("POD1 Off clicked!")
-    $outputBox.AppendText("POD 1 Power Off`r`n")
+    $outputBox.AppendText("All Power Off`r`n")
 })
 
 # Add the button to the form

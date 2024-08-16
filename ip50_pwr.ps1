@@ -19,9 +19,6 @@ $DEV_PORT = 30333
 $LINE_END = "`r`n"
 $POD_STR = "POD"
 $ALL_STR = "ALL"
-# $ON_STR = "ON"
-# $OFF_STR = "OFF"
-
 $jg_devices = @('R1A', 'R1B', 'R2A', 'R3A', 'R3B')
 
 ###############################################################################
@@ -40,10 +37,6 @@ function GetDevIpAddr {
     'R2A' = '172.22.0.203' 
     'R3A' = '172.22.0.204' 
     'R3B' = '172.22.0.205' 
-    # 'R1B' = '172.22.0.201' 
-    # 'R2A' = '172.22.0.201' 
-    # 'R3A' = '172.22.0.201' 
-    # 'R3B' = '172.22.0.201' 
   }
 
   if ($dev_ip_addresses.ContainsKey($dev)) {
@@ -85,62 +78,46 @@ function SendCommand {
 # Function to build command string
 function BuildCommand {
   param (
-      [string]$pod,
-      [string]$cmd
+    [string]$pod,
+    [string]$cmd
   )
 
-  $cmd_prefix =  ""
+  $cmd_prefix = ""
   if ($pod.ToUpper() -eq "ALL") { 
-      $cmd_prefix = $ALL_STR 
-    } else {
-       $cmd_prefix $POD_STR + $pod 
-    }
-  $command = ($cmd_prefix + $cmd + $LINE_END)
-  $command = $command.ToUpper()
+    $cmd_prefix = $ALL_STR 
+  } else {
+    $cmd_prefix = $POD_STR + $pod 
+  }
+  return ($cmd_prefix + $cmd + $LINE_END).ToUpper()
+  # return $command
 }
-
-
 
 ###############################################################################
 
 # Show input arguments
-Write-Output "dev = $dev"
-Write-Output "pod = $pod"
-Write-Output "cmd = $cmd"
-
-# Initialize log string
-$log_str = ""
+Write-Output "Args - dev = $dev, pod = $pod, cmd = $cmd `r`n"
 
 # Determine if all devices are selected
 if ($dev.ToUpper() -eq 'ALL') {
-    $log_str = "He selected all of them"
-
-    # Iterate over each device in $jg_devices
-    foreach ($jg in $jg_devices) {
-        # Get device IP address
-        $jg_ip = GetDevIpAddr -dev $jg
-        Write-Output "All selected: IP lookup: $jg = $jg_ip"
-        
-        # Build command
-        $command = BuildCommand -pod $pod -cmd $cmd
-        SendCommand -ip_addr $jg_ip -port $DEV_PORT -cmd $command
-        $log_str = "Message sent to $jg ($jg_ip). Cmd: $command"
-    }
-
-} else {
+  # Iterate over each device in $jg_devices
+  foreach ($jg in $jg_devices) {
     # Get device IP address
-    $dev_ip = GetDevIpAddr -dev $dev
-    Write-Output "Lookup: $dev = $dev_ip"
+    $jg_ip = GetDevIpAddr -dev $jg
     
     # Build command
     $command = BuildCommand -pod $pod -cmd $cmd
-    SendCommand -ip_addr $dev_ip -port $DEV_PORT -cmd $command
-    $log_str = "Message sent to $dev ($dev_ip). Cmd: $command"
+    SendCommand -ip_addr $jg_ip -port $DEV_PORT -cmd $command
+    Write-Output "Message sent to $jg ($jg_ip). Cmd: $command"
+  }
+} else {
+  # Get device IP address
+  $dev_ip = GetDevIpAddr -dev $dev
+  
+  # Build command
+  $command = BuildCommand -pod $pod -cmd $cmd
+  SendCommand -ip_addr $dev_ip -port $DEV_PORT -cmd $command
+  Write-Output "Message sent to $dev ($dev_ip). Cmd: $command"
 }
 
-
 # Write-Output "command = $command"
-
-Write-Host $log_str
-
-
+# Write-Host $log_str
