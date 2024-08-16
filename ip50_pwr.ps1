@@ -1,54 +1,110 @@
-###############################################################################
-# Input arguments
 param (
-    [ValidateScript({ $_ -ge 1 -and $_ -le 2 })]
-    [int]$pod,
-
-    [ValidateSet("on", "On", "ON", "off", "Off", "OFF")]
-    [string]$cmd
+  [ValidateSet('R1A', 'R1B', 'R2A', 'R3A', 'R3B', 'ALL', 'All', 'all')]
+  [string]$dev,
+  
+  [ValidateSet('1', '2')]
+  [string]$pod,
+  
+  [ValidateSet("on", "On", "ON", "off", "Off", "OFF")]
+  [string]$cmd
 )
+
 ###############################################################################
 # Constants
 
-$MIN_POD_NUM = 1
-$MAX_POD_NUM = 2
-
-# Rarget IP address and port constants
-$TARGET_IP = "192.168.1.77"
-$TARGET_PORT = 19740
+# Device IP address and port constants
+$DEV_PORT = 30333
 
 # IP 50 message constants
 $LINE_END = "`r`n"
-# $deactivate = "DEACTIVATE" + $LINE_END
 $POD_STR = "POD"
-$ON_STR = "ON"
-$OFF_STR = "OFF"
+# $ON_STR = "ON"
+# $OFF_STR = "OFF"
 
 ###############################################################################
+# Helper Functions
+
+function GetDevIpAddr {
+  [CmdletBinding()]
+  param (
+      [ValidateSet('R1A', 'R1B', 'R2A', 'R3A', 'R3B')]
+      [string]$dev
+  )
+
+  $dev_ip_addresses = @{
+    'R1A' = '172.22.0.201'
+    'R1B' = '172.22.0.202' 
+    'R2A' = '172.22.0.203' 
+    'R3A' = '172.22.0.204' 
+    'R3B' = '172.22.0.205' 
+    # 'R1B' = '172.22.0.201' 
+    # 'R2A' = '172.22.0.201' 
+    # 'R3A' = '172.22.0.201' 
+    # 'R3B' = '172.22.0.201' 
+  }
+
+  if ($dev_ip_addresses.ContainsKey($dev)) {
+    $ip = $dev_ip_addresses[$dev]
+    # Write-Output "IP of $dev is $ip`r`n"
+    return $ip
+  }
+  else {
+      Write-Error -Message "Invalid device. IP address not available" -Category InvalidArgument
+  }
+}
+
+function SendCommand {
+  param (
+      [string]$ip_addr,
+      [string]$port,
+      # [int32]$pod,
+      [string]$cmd
+  )
+
+  # Create a new UDP client
+  $udpClient = New-Object System.Net.Sockets.UdpClient
+
+  # Send line feed and carriage return to get to known starting point
+  $byteData = [Text.Encoding]::UTF8.GetBytes($LINE_END)
+  $null = $udpClient.Send($byteData, $byteData.Length, $ip_addr, $port)
+
+  # Send command
+  $byteData = [Text.Encoding]::UTF8.GetBytes($cmd)
+  $null = $udpClient.Send($byteData, $byteData.Length, $ip_addr, $port)
+
+  # $out_str = "Sent Command, $cmd, to $ip_addr"
+  # Write-Host $out_str
+
+  # Close the UDP client
+  $udpClient.Close()
+}
+
+###############################################################################
+
 # Show input arguments
-# Write-Output "pod = $pod"
-# Write-Output "cmd = $cmd"
+Write-Output "dev = $dev"
+Write-Output "pod = $pod"
+Write-Output "cmd = $cmd"
 
-# Build command
-$command = $POD_STR + $pod + $cmd + $LINE_END
-$command = $command.ToUpper()
-# Write-Output "command = $command"
+# $log_str = ""
+# if ($dev.ToUpper() -eq 'ALL') {
+#   $log_str = "He selected all of them"
 
-# Create a new UDP client
-$udpClient = New-Object System.Net.Sockets.UdpClient
+#   foreach () {
+# Gean start here ...
+#   }
+# } else {
+  $dev_ip = GetDevIpAddr -dev $dev
+  Write-Output "lookup: $dev = $dev_ip"
 
-# Send line feed and carriage return to get to known starting point
-$byteData = [Text.Encoding]::UTF8.GetBytes($LINE_END)
-$null = $udpClient.Send($byteData, $byteData.Length, $TARGET_IP, $TARGET_PORT)
+  # Build command
+  $command = $POD_STR + $pod + $cmd + $LINE_END
+  $command = $command.ToUpper()
+  # Write-Output "command = $command"
 
-# Start-Sleep -Seconds 1
+  SendCommand -ip_addr $dev_ip -port $DEV_PORT -cmd $command
+  $log_str = "Message sent to $dev ($dev_ip). Cmd: $command"
+# }
+Write-Host $log_str
 
-# Send command
-$byteData = [Text.Encoding]::UTF8.GetBytes($command)
-$null = $udpClient.Send($byteData, $byteData.Length, $TARGET_IP, $TARGET_PORT)
 
-$out_str = "Sent Command: $command"
-Write-Host $out_str
-
-# Close the UDP client
-$udpClient.Close()
