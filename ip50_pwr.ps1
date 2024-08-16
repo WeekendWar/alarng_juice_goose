@@ -82,20 +82,23 @@ function SendCommand {
   $udpClient.Close()
 }
 
+# Function to build command string
 function BuildCommand {
+  param (
+      [string]$pod,
+      [string]$cmd
+  )
 
-
-
-  # Build command
-  $cmd_prefix = ""
-  if ($pod.ToUpper() -eq "ALL") {
-    $cmd_prefix = $ALL_STR
-  } else {
-    $cmd_prefix = $POD_STR + $pod
-  }
-  $command = $cmd_prefix + $cmd + $LINE_END
+  $cmd_prefix =  ""
+  if ($pod.ToUpper() -eq "ALL") { 
+      $cmd_prefix = $ALL_STR 
+    } else {
+       $cmd_prefix $POD_STR + $pod 
+    }
+  $command = ($cmd_prefix + $cmd + $LINE_END)
   $command = $command.ToUpper()
 }
+
 
 
 ###############################################################################
@@ -105,47 +108,37 @@ Write-Output "dev = $dev"
 Write-Output "pod = $pod"
 Write-Output "cmd = $cmd"
 
+# Initialize log string
 $log_str = ""
-$command = ""
+
+# Determine if all devices are selected
 if ($dev.ToUpper() -eq 'ALL') {
-  $log_str = "He selected all of them" 
+    $log_str = "He selected all of them"
 
-  foreach ($jg in $jg_devices) {
-
-    $jg_ip = GetDevIpAddr -dev $jg
-    Write-Output "all selected: ip lookup: $jg = $jg_ip"
-
-    # Build command
-    $cmd_prefix = ""
-    if ($pod.ToUpper() -eq "ALL") {
-      $cmd_prefix = $ALL_STR
-    } else {
-      $cmd_prefix = $POD_STR + $pod
+    # Iterate over each device in $jg_devices
+    foreach ($jg in $jg_devices) {
+        # Get device IP address
+        $jg_ip = GetDevIpAddr -dev $jg
+        Write-Output "All selected: IP lookup: $jg = $jg_ip"
+        
+        # Build command
+        $command = BuildCommand -pod $pod -cmd $cmd
+        SendCommand -ip_addr $jg_ip -port $DEV_PORT -cmd $command
+        $log_str = "Message sent to $jg ($jg_ip). Cmd: $command"
     }
-    $command = $cmd_prefix + $cmd + $LINE_END
-    $command = $command.ToUpper()
-
-    SendCommand -ip_addr $jg_ip -port $DEV_PORT -cmd $command
-    $log_str = "Message sent to $dev ($jg_ip). Cmd: $command"
-  }
 
 } else {
-  $dev_ip = GetDevIpAddr -dev $dev
-  Write-Output "lookup: $dev = $dev_ip"
-
-  # Build command
-  $cmd_prefix = ""
-  if ($pod.ToUpper() -eq "ALL") {
-    $cmd_prefix = $ALL_STR
-  } else {
-    $cmd_prefix = $POD_STR + $pod
-  }
-  $command = $cmd_prefix + $cmd + $LINE_END
-  $command = $command.ToUpper()
-
-  SendCommand -ip_addr $dev_ip -port $DEV_PORT -cmd $command
-  $log_str = "Message sent to $dev ($dev_ip). Cmd: $command"
+    # Get device IP address
+    $dev_ip = GetDevIpAddr -dev $dev
+    Write-Output "Lookup: $dev = $dev_ip"
+    
+    # Build command
+    $command = BuildCommand -pod $pod -cmd $cmd
+    SendCommand -ip_addr $dev_ip -port $DEV_PORT -cmd $command
+    $log_str = "Message sent to $dev ($dev_ip). Cmd: $command"
 }
+
+
 # Write-Output "command = $command"
 
 Write-Host $log_str
