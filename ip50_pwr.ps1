@@ -2,7 +2,7 @@ param (
   [ValidateSet('R1A', 'R1B', 'R2A', 'R3A', 'R3B', 'ALL', 'All', 'all')]
   [string]$dev,
   
-  [ValidateSet('1', '2')]
+  [ValidateSet('1', '2', 'ALL', 'All', 'all')]
   [string]$pod,
   
   [ValidateSet("on", "On", "ON", "off", "Off", "OFF")]
@@ -18,6 +18,7 @@ $DEV_PORT = 30333
 # IP 50 message constants
 $LINE_END = "`r`n"
 $POD_STR = "POD"
+$ALL_STR = "ALL"
 # $ON_STR = "ON"
 # $OFF_STR = "OFF"
 
@@ -98,10 +99,16 @@ Write-Output "cmd = $cmd"
   Write-Output "lookup: $dev = $dev_ip"
 
   # Build command
-  $command = $POD_STR + $pod + $cmd + $LINE_END
+  $cmd_prefix = ""
+  if ($pod.ToUpper() -eq "ALL") {
+    $cmd_prefix = $ALL_STR
+  } else {
+    $cmd_prefix = $POD_STR + $pod
+  }
+  $command = $cmd_prefix + $cmd + $LINE_END
   $command = $command.ToUpper()
   # Write-Output "command = $command"
-
+  
   SendCommand -ip_addr $dev_ip -port $DEV_PORT -cmd $command
   $log_str = "Message sent to $dev ($dev_ip). Cmd: $command"
 # }
